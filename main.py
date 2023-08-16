@@ -4,7 +4,7 @@
 The application's main script.
 """
 
-from asyncio import gather, run
+from asyncio import create_task, gather, run
 from functools import lru_cache
 from logging import error, info
 from platform import machine
@@ -14,7 +14,7 @@ from RPIO import *
 
 from config import *
 
-from typing import Coroutine
+from typing import Callable, Coroutine
 
 
 setmode(MODE)
@@ -26,6 +26,8 @@ setup(SERVO1, OUT)
 
 
 async def reset() -> None:
+    info("reseting...")
+
     await gather(
         opendoor(SERVO0, False),
         opendoor(SERVO1, False)
@@ -38,15 +40,20 @@ async def degtodutycycle(servo: ServoType, deg: int) -> int:
     Convert degrees to duty cycle in μs based on a servo's config.
     """
 
-    assert 0 <= deg <= 180, f"Servo range invalid: Cannot move servo on pin {servo.pin} to {deg}deg."
+    if not 0 <= deg <= servo.deg:
+        raise ValueError(f"Servo range invalid: Cannot move servo {servo} to position {deg}deg.")
 
     dcdelta = servo.maxdc - servo.mindc
-
-    off = dcdelta * deg / 180
+    off = dcdelta * deg / servo.deg
 
     return floor(servo.mindc + off)
 
-async def comlockseq(combo: CombinationType, callback: Coroutine) -> None:
+async def comlockbg() -> None:
+    """
+    Background process to run while comlockseq is running.
+    """
+
+async def comlockseq(combo: CombinationType, callback: Callable) -> None:
     """
     Implement a 4 digit combintation lock running on gpio pins.
     """
@@ -57,7 +64,7 @@ async def comlockseq(combo: CombinationType, callback: Coroutine) -> None:
 
         break
 
-    return await callback
+    return callback()
 
 async def opendoor(servo: ServoType, deg: int) -> None:
     """
@@ -80,7 +87,11 @@ async def main() -> None:
         await reset()
 
         try:
-            await comlockseq(COMBO, opendoor(SERVO0, True))
+            clbg = create_task(comlockbg())
+            await comlockseq(COMBO, clbg.cancel)
+
+            await opendoor(SERVO0, 90)
+
 
         except EOFError:
             info("^D detected, reseting...")
@@ -95,4 +106,4 @@ if __name__ == "__main__":
     if machine() != "armv7l":
         raise EnvironmentError("This script must be run on Raspberry Pi")
 
-    run(main())
+    run(main()) # simple app doesn't need asyncio.get_event_loop() etc.

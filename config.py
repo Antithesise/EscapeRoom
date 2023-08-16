@@ -21,6 +21,8 @@ class ServoType(NamedTuple):
 
     pin: int
     "The control pin number"
+    deg: int
+    "The range of motion in deg"
     mindc: int = 1000
     "The 0deg duty cycle in μs"
     maxdc: int = 2000
@@ -71,15 +73,19 @@ COMBOSEQ = [3, 0, 2, 1, 0, 0, 3, 3]
 MODE = BCM # BCM or BOARD
 "Pin numbering mode"
 
+SERVO0DEG = 180
+"The range of the motion in deg"
 SERVO0MIN = 1000
 "The 0deg duty cycle in μs"
 SERVO0MAX = 2000
-"The 180deg duty cycle in μs"
+"The max deg duty cycle in μs"
 
+SERVO1DEG = 180
+"The range of the motion in deg"
 SERVO1MIN = 1000
 "The 0deg duty cycle in μs"
 SERVO1MAX = 2000
-"The 180deg duty cycle in μs"
+"The max deg duty cycle in μs"
 
 # ---------------------------------------------------------------------------- #
 #                                Initialisation                                #
@@ -87,7 +93,7 @@ SERVO1MAX = 2000
 #                                DO NOT MODIFY!                                #
 # ---------------------------------------------------------------------------- #
 
-SERVO0 = ServoType(SERVO0PIN, SERVO0MIN, SERVO0MAX)
-SERVO1 = ServoType(SERVO1PIN, SERVO1MIN, SERVO1MAX)
+SERVO0 = ServoType(SERVO0PIN, SERVO0DEG, SERVO0MIN, SERVO0MAX)
+SERVO1 = ServoType(SERVO1PIN, SERVO1DEG, SERVO1MIN, SERVO1MAX)
 
 COMBO = CombinationType(COMBOPINS, COMBOSEQ)

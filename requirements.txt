@@ -1,0 +1,1 @@
+platform_machine = "armv7l" # make sure we are running on a Raspberry Pi. Note that this is not garuanteed to block execution on all systems

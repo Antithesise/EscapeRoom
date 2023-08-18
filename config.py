@@ -4,6 +4,7 @@ Config file for specifying pins, modes, solutions, etc.
 All pin numbers assume BCM, unless MODE is changed.
 """
 
+from dataclasses import dataclass, field
 from RPIO import BCM, BOARD
 
 from typing import NamedTuple
@@ -14,7 +15,19 @@ from typing import NamedTuple
 #                                DO NOT MODIFY!                                #
 # ---------------------------------------------------------------------------- #
 
-class ServoType(NamedTuple):
+@dataclass
+class PWMType:
+    """
+    An internal class representing a pwm pin.
+    """
+
+    pin: int
+    "The pin number"
+    dc: int = field(default=0, init=False)
+    "The current duty cycle of the pin"
+
+@dataclass
+class ServoType(PWMType):
     """
     An internal class representing a servo motor.
     """
@@ -38,6 +51,9 @@ class CombinationType(NamedTuple):
     seq: list[int]
     "The correct sequence of button indexes"
 
+    def pinindex(self, pin: int) -> int:
+        return self.pins.index(pin) if pin in self.pins else -1
+
 # ---------------------------------------------------------------------------- #
 #                             Application settings                             #
 # ---------------------------------------------------------------------------- #
@@ -51,9 +67,9 @@ PWM1 = 13
 
 # ------------------------------ Servo settings ------------------------------ #
 
-SERVO0PIN = 23
+DOOR0PIN = 23
 "The control pin of the first door servo"
-SERVO1PIN = 24
+DOOR1PIN = 24
 "The control pin of the second door servo"
 
 # --------------------------- Combination settings --------------------------- #
@@ -73,18 +89,18 @@ COMBOSEQ = [3, 0, 2, 1, 0, 0, 3, 3]
 MODE = BCM # BCM or BOARD
 "Pin numbering mode"
 
-SERVO0DEG = 180
+DOOR0DEG = 180
 "The range of the motion in deg"
-SERVO0MIN = 1000
+DOOR0MIN = 1000
 "The 0deg duty cycle in μs"
-SERVO0MAX = 2000
+DOOR0MAX = 2000
 "The max deg duty cycle in μs"
 
-SERVO1DEG = 180
+DOOR1DEG = 180
 "The range of the motion in deg"
-SERVO1MIN = 1000
+DOOR1MIN = 1000
 "The 0deg duty cycle in μs"
-SERVO1MAX = 2000
+DOOR1MAX = 2000
 "The max deg duty cycle in μs"
 
 # ---------------------------------------------------------------------------- #
@@ -93,7 +109,7 @@ SERVO1MAX = 2000
 #                                DO NOT MODIFY!                                #
 # ---------------------------------------------------------------------------- #
 
-SERVO0 = ServoType(SERVO0PIN, SERVO0DEG, SERVO0MIN, SERVO0MAX)
-SERVO1 = ServoType(SERVO1PIN, SERVO1DEG, SERVO1MIN, SERVO1MAX)
+DOOR0 = ServoType(DOOR0PIN, DOOR0DEG, DOOR0MIN, DOOR0MAX)
+DOOR1 = ServoType(DOOR1PIN, DOOR1DEG, DOOR1MIN, DOOR1MAX)
 
 COMBO = CombinationType(COMBOPINS, COMBOSEQ)

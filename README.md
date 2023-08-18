@@ -4,6 +4,10 @@ This a college project.
 ## Operation
 Press `Ctrl+D` to reset, and `Ctrl+C` to exit.
 
+## Parts List
+- 2 x [5v Micro servo](https://www.jaycar.com.au/arduino-compatible-9g-micro-servo-motor/p/YM2758)
+- 1 x [Adafruit 1x4 keypad](https://www.adafruit.com/product/1332)
+
 ## Pins
 Configurable in `config.py`, here are the default values:
 

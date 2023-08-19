@@ -6,6 +6,7 @@ All pin numbers assume BCM, unless MODE is changed.
 
 from dataclasses import dataclass, field
 from RPIO import BCM, BOARD
+from RPIO import PWM
 
 from typing import NamedTuple
 
@@ -15,7 +16,11 @@ from typing import NamedTuple
 #                                DO NOT MODIFY!                                #
 # ---------------------------------------------------------------------------- #
 
-@dataclass
+defctl = PWM.Servo()
+piezoctl = PWM.Servo()
+servoctl = PWM.Servo()
+
+@dataclass # I see no reason why these dataclasses should be immutable
 class PWMType:
     """
     An internal class representing a pwm pin.
@@ -23,23 +28,31 @@ class PWMType:
 
     pin: int
     "The pin number"
+    ctl: PWM.Servo = defctl
+    "The RPIO controller class"
+
     dc: int = field(default=0, init=False)
     "The current duty cycle of the pin"
 
 @dataclass
-class ServoType(PWMType):
+class ServoType: # not inherited from PWMType due to arg ordering (kw_only doesn't fix this)
     """
     An internal class representing a servo motor.
     """
 
     pin: int
     "The control pin number"
-    deg: int
+    deg: int = 180
     "The range of motion in deg"
     mindc: int = 1000
     "The 0deg duty cycle in μs"
     maxdc: int = 2000
     "The 180deg duty cycle in μs"
+    ctl: PWM.Servo = defctl
+    "The RPIO controller class"
+
+    dc: int = field(default=0, init=False)
+    "The current duty cycle of the pin"
 
 class CombinationType(NamedTuple):
     """
@@ -109,7 +122,7 @@ DOOR1MAX = 2000
 #                                DO NOT MODIFY!                                #
 # ---------------------------------------------------------------------------- #
 
-DOOR0 = ServoType(DOOR0PIN, DOOR0DEG, DOOR0MIN, DOOR0MAX)
-DOOR1 = ServoType(DOOR1PIN, DOOR1DEG, DOOR1MIN, DOOR1MAX)
+DOOR0 = ServoType(DOOR0PIN, DOOR0DEG, DOOR0MIN, DOOR0MAX, servoctl)
+DOOR1 = ServoType(DOOR1PIN, DOOR1DEG, DOOR1MIN, DOOR1MAX, servoctl)
 
 COMBO = CombinationType(COMBOPINS, COMBOSEQ)

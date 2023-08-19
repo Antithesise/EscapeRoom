@@ -2,6 +2,8 @@
 
 """
 The application's main script.
+
+© 2023 Antithesise
 """
 
 from asyncio import CancelledError, create_task, gather, get_event_loop, run, sleep

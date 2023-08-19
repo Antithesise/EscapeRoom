@@ -38,3 +38,6 @@ Configurable in `config.py`, here are the default values:
 
 ## Credits
 - [metachris](https://github.com/metachris), author of the [RPIO](https://github.com/metachris/RPIO) library
+
+---
+© 2023 Antithesise

@@ -2,6 +2,8 @@
 Config file for specifying pins, modes, solutions, etc.
 
 All pin numbers assume BCM, unless MODE is changed.
+
+© 2023 Antithesise
 """
 
 from dataclasses import dataclass, field

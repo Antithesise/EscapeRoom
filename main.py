@@ -4,8 +4,8 @@
 The application's main script.
 """
 
-from asyncio import create_task, gather, get_event_loop, run, sleep
-from functools import lru_cache
+from asyncio import CancelledError, create_task, gather, get_event_loop, run, sleep
+from functools import lru_cache, partial
 from logging import error, info
 from platform import machine
 from threading import Lock
@@ -33,12 +33,15 @@ loop = get_event_loop()
 
 
 async def reset() -> None:
-    info("reseting...")
+    async def resetbg():
+        info("reseting...")
 
-    await gather(
-        moveservo(DOOR0, 0),
-        moveservo(DOOR1, 0)
-    )
+        await gather(
+            moveservo(DOOR0, 0),
+            moveservo(DOOR1, 0)
+        )
+
+    await loop.create_task(resetbg())
 
 
 lru_cache(50)
@@ -102,18 +105,37 @@ async def comlockbg() -> None:
     Background process(s) to run while comlockseq is running.
     """
 
+    try:
+        while True:
+            pass # run bg code
+
+    except CancelledError:
+        pass # clean up etc.
+
+def comlockcbfactory(combo: CombinationType, pin: int) -> Callable[[], None]:
+    """
+    A factory to generate interrupt callback functions for a combination lock's pins.
+    """
+
+    async def callback(combo: CombinationType=combo, pin: int=pin):
+        with combolck:
+            comboseq.append(combo.pinindex(pin)) # add pin to inputs
+
+    return partial(loop.run_until_complete, callback(combo, pin))
+
 async def comlockcheck(combo: CombinationType) -> None:
     """
     Check if the combination is correct.
     """
 
     while True:
-        await loop.run_in_executor(None, wait_for_interrupts) # wait_for_interrupts blocks, so it needs to be awaited
-
-        with combolck:
+        await loop.run_in_executor(None, wait_for_interrupts) # wait_for_interrupts blocks synchronously,
+                                                              # so we run in it executor and await output
+        with combolck: # access combo_seq so its
             if comboseq == combo.seq:
-                for p in combo.pins:
-                    del_interrupt_callback(p) # remove callbacks
+                await gather( # remove callbacks
+                    loop.run_in_executor(None, del_interrupt_callback, p) for p in combo.pins
+                )
 
                 comboseq.clear() # reset inputs
 
@@ -122,26 +144,22 @@ async def comlockcheck(combo: CombinationType) -> None:
             elif len(comboseq) >= len(combo.seq):
                 comboseq.clear() # reset inputs
 
-def comlockcbfactory(combo: CombinationType, pin: int):
-    """
-    A factory to generate interrupt callback functions for a combination lock's pins.
-    """
-
-    def callback(combo: CombinationType=combo, pin: int=pin) -> None:
-        with combolck:
-            comboseq.append(combo.pinindex(pin)) # add pin to inputs
-
-    return callback
-
 async def comlockseq(combo: CombinationType, callback: Callable) -> None:
     """
     Implement a 4 digit combintation lock running on gpio pins.
     """
 
-    for p in combo.pins:
-        add_interrupt_callback(p, comlockcbfactory(combo, p), edge="rising", threaded_callback=True)
+    await gather( # add callbacks
+        loop.run_in_executor(None, partial(
+            add_interrupt_callback,
+            p,
+            callback=comlockcbfactory(combo, p),
+            edge="rising",
+            threaded_callback=True
+        )) for p in combo.pins
+    )
 
-    await comlockcheck(combo) # the func blocks until correct code inputted
+    await comlockcheck(combo) # blocks until correct code is inputted
 
     return callback()
 
@@ -158,22 +176,25 @@ async def main() -> None:
 
         try:
             clbg = create_task(comlockbg())
-            await comlockseq(COMBO, clbg.cancel)
+
+            await comlockseq(COMBO, clbg.cancel) # start combo lock sequence, bloxking until complete
+            await clbg # clean up bg code
 
             await moveservo(DOOR0, 90)
 
-
         except EOFError:
             info("^D detected, reseting...")
+
             continue
 
         except KeyboardInterrupt:
             info("^C detected, exiting")
-            break
+
+            return
 
 
 if __name__ == "__main__":
     if machine() != "armv7l":
         raise EnvironmentError("This script must be run on Raspberry Pi")
 
-    run(main()) # simple app doesn't need asyncio.get_event_loop() etc.
+    run(main())

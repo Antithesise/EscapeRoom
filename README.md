@@ -9,6 +9,11 @@ Press `Ctrl+D` to reset, and `Ctrl+C` to exit.
 - 1 x 1x4 keypad, such as the [Adafruit 1332](https://www.adafruit.com/product/1332)
 - 2 x 5v micro servo
 - 2 x Passive buzzer (piezo)
+- 5 x LED (20mA)
+- Resistors to make up the following resistances:
+  - 6kΩ
+  - 1kΩ
+  - 33Ω
 
 ## Circuit Diagram
 ![Circuit Diagram](circuit.png)
@@ -19,7 +24,7 @@ Configurable in `config.py`, here are the default values:
 
 |             | |        HEADER | PIN | DIAGRAM         | |             |
 |:------------|-|--------------:|:---:|:----------------|-|------------:|
-|             | |         `3V3` |     | `5V`            | | servo power |
+| led power   | |         `3V3` |     | `5V`            | | servo power |
 |             | |     `2 (SDA)` |     | `5V`            | |             |
 |             | |     `3 (SCL)` |     | `GND`           | | servo gnd   |
 |             | |  `4 (GPCLK0)` |     | `14 (TXD)`      | |             |
@@ -31,14 +36,14 @@ Configurable in `config.py`, here are the default values:
 | combo btn 4 | |   `10 (MOSI)` |     | `GND`           | |             |
 |             | |    `9 (MISO)` |     | `25`            | |             |
 |             | |   `11 (SCLK)` |     | `8 (CE0)`       | |             |
-|             | |         `GND` |     | `7 (CE1)`       | |             |
+| led gnd     | |         `GND` |     | `7 (CE1)`       | |             |
 |             | |   `0 (ID_SD)` |     | `1 (ID_SC)`     | |             |
-|             | |           `5` |     | `GND`           | |             |
-|             | |           `6` |     | `12 (PWM0)`     | | piezo 1     |
-| piezo 2     | |   `13 (PWM1)` |     | `GND`           | |             |
+| led control | |           `5` |     | `GND`           | |             |
+|             | |           `6` |     | `12 (PWM0)`     | | buzzer 1    |
+| buzzer 2    | |   `13 (PWM1)` |     | `GND`           | | buzzer gnd  |
 |             | | `19 (PCM_FS)` |     | `16`            | |             |
 |             | |          `26` |     | `20 (PCM_DIN)`  | |             |
-| piezo gnd   | |         `GND` |     | `21 (PCM_DOUT)` | |             |
+|             | |         `GND` |     | `21 (PCM_DOUT)` | |             |
 
 ![RPi Pinout Diagram](https://www.raspberrypi.com/documentation/computers/images/GPIO-Pinout-Diagram-2.png)
 

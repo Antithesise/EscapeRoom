@@ -7,15 +7,13 @@ The application's main script.
 """
 
 from asyncio import CancelledError, create_task, gather, get_event_loop, run, sleep
-from functools import lru_cache, partial
 from logging import error, info
+from functools import partial
 from platform import machine
 from threading import Lock
-from math import floor
-from RPIO import PWM
 from RPIO import *
 
-from config import *
+from util import * # also include config.py exports
 
 from typing import Callable
 
@@ -44,37 +42,6 @@ async def reset() -> None:
         )
 
     await loop.create_task(resetbg())
-
-
-lru_cache(50)
-async def degtodutycycle(deg: int, servo: ServoType) -> int:
-    """
-    Convert degrees to duty cycle in μs based on a servo's config, updating it with the calculated value.
-    """
-
-    if not 0 <= deg <= servo.deg:
-        raise ValueError(f"Servo range invalid: Cannot move servo {servo} to position {deg}deg.")
-
-    dcdelta = servo.maxdc - servo.mindc
-    off = dcdelta * deg / servo.deg
-
-    dc = floor(servo.mindc + off)
-    servo.dc = dc
-
-    return dc
-
-lru_cache(50)
-async def freqtodutycycle(freqhz: int, piezo: PWMType | None=None) -> int:
-    """
-    Convert hertz to duty cycle in μs, optionally updating a piezo's config.
-    """
-
-    dc = floor(1000000 / freqhz) if freqhz else 0
-
-    if piezo:
-        piezo.dc = dc
-
-    return dc
 
 async def moveservo(servo: ServoType, deg: int) -> None:
     """

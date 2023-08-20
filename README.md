@@ -7,8 +7,8 @@ Press `Ctrl+D` to reset, and `Ctrl+C` to exit.
 ## Parts List
 - 1 x [Raspberry Pi 4B](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/)
 - 1 x 1x4 keypad, such as the [Adafruit 1332](https://www.adafruit.com/product/1332)
-- 2 x 5v Micro servo
-- 2 x Passive Buzzer (Piezo)
+- 2 x 5v micro servo
+- 2 x Passive buzzer (piezo)
 
 ## Circuit Diagram
 ![Circuit Diagram](circuit.png)

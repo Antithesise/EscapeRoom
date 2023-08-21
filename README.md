@@ -26,21 +26,21 @@ Configurable in `config.py`, here are the default values:
 
 |             | |        HEADER | PIN | DIAGRAM         | |             |
 |:------------|-|--------------:|:---:|:----------------|-|------------:|
-| led power   | |         `3V3` |     | `5V`            | | servo power |
-|             | |     `2 (SDA)` |     | `5V`            | |             |
-|             | |     `3 (SCL)` |     | `GND`           | | servo gnd   |
-|             | |  `4 (GPCLK0)` |     | `14 (TXD)`      | |             |
+| input power | |         `3V3` |     | `5V`            | | led power   |
+|             | |     `2 (SDA)` |     | `5V`            | | servo power |
+|             | |     `3 (SCL)` |     | `GND`           | | led gnd     |
+|             | |  `4 (GPCLK0)` |     | `14 (TXD)`      | | led control |
 |             | |         `GND` |     | `15 (RXD)`      | |             |
 | combo btn 1 | |          `17` |     | `18 (PCM_CLK)`  | |             |
-| combo btn 2 | |          `27` |     | `GND`           | |             |
+| combo btn 2 | |          `27` |     | `GND`           | | servo gnd   |
 | combo btn 3 | |          `22` |     | `23`            | | servo 1     |
-| combo power | |         `3V3` |     | `24`            | | servo 2     |
+|             | |         `3V3` |     | `24`            | | servo 2     |
 | combo btn 4 | |   `10 (MOSI)` |     | `GND`           | |             |
-|             | |    `9 (MISO)` |     | `25`            | |             |
-|             | |   `11 (SCLK)` |     | `8 (CE0)`       | |             |
-| led gnd     | |         `GND` |     | `7 (CE1)`       | |             |
+| disarm keys | |    `9 (MISO)` |     | `25`            | |             |
+| ctrl rods   | |   `11 (SCLK)` |     | `8 (CE0)`       | |             |
+|             | |         `GND` |     | `7 (CE1)`       | |             |
 |             | |   `0 (ID_SD)` |     | `1 (ID_SC)`     | |             |
-| led control | |           `5` |     | `GND`           | |             |
+|             | |           `5` |     | `GND`           | |             |
 |             | |           `6` |     | `12 (PWM0)`     | | buzzer 1    |
 | buzzer 2    | |   `13 (PWM1)` |     | `GND`           | | buzzer gnd  |
 |             | | `19 (PCM_FS)` |     | `16`            | |             |

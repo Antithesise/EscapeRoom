@@ -9,6 +9,8 @@ Press `Ctrl+D` to reset, and `Ctrl+C` to exit.
 - 1 x 1x4 keypad, such as the [Adafruit 1332](https://www.adafruit.com/product/1332)
 - 2 x 5v micro servo
 - 2 x Passive buzzer (piezo)
+- 1 x NPN Transistor
+- 2 x Button
 - 5 x LED (20mA)
 - Resistors to make up the following resistances:
   - 6kΩ

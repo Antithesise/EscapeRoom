@@ -6,7 +6,7 @@ The application's main script.
 © 2023 Antithesise
 """
 
-from asyncio import CancelledError, create_task, gather, get_event_loop, run, sleep
+from asyncio import CancelledError, Task, create_task, gather, get_event_loop, run, sleep
 from logging import error, info
 from functools import partial
 from platform import machine
@@ -32,16 +32,16 @@ combolck = Lock()
 loop = get_event_loop()
 
 
-async def reset() -> None:
+async def reset() -> Task | None:
     async def resetbg():
-        info("reseting...")
+        info("Reseting...")
 
         await gather(
             moveservo(DOOR0, 0),
             moveservo(DOOR1, 0)
         )
 
-    await loop.create_task(resetbg())
+    return await loop.create_task(resetbg())
 
 async def moveservo(servo: ServoType, deg: int) -> None:
     """
@@ -106,11 +106,15 @@ async def comlockcheck(combo: CombinationType) -> None:
                     loop.run_in_executor(None, del_interrupt_callback, p) for p in combo.pins
                 )
 
+                info("Correct combination detected.")
+
                 comboseq.clear()
 
                 break
 
             elif len(comboseq) >= len(combo.seq):
+                info(f"Incorrect combination detected: {comboseq}.")
+
                 comboseq.clear()
 
 async def comlockseq(combo: CombinationType, callback: Callable) -> None:
@@ -129,6 +133,8 @@ async def comlockseq(combo: CombinationType, callback: Callable) -> None:
     )
 
     await comlockcheck(combo) # blocks until correct code is inputted
+
+    info(f"Calling {callback.__name__}")
 
     return callback()
 
@@ -151,6 +157,9 @@ async def main() -> None:
 
             await moveservo(DOOR0, 90)
 
+            # next seq
+
+
         except EOFError:
             info("^D detected, reseting...")
 
@@ -164,6 +173,6 @@ async def main() -> None:
 
 if __name__ == "__main__":
     if machine() != "armv7l":
-        raise EnvironmentError("This script must be run on Raspberry Pi")
+        error("This script must be run on Raspberry Pi. Running mock library...")
 
     run(main())

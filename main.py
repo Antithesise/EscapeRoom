@@ -48,7 +48,7 @@ async def moveservo(servo: ServoType, deg: int) -> None:
     Activate a servo running on a gpio pin.
     """
 
-    dc = await degtodutycycle(deg, servo) # also sets servo.dc
+    dc = await degtodutycycle(deg, servo) # servo.dc = deg
     servo.ctl.set_servo(servo.pin, dc)
 
     await sleep(0.05) # ensure servo has had enough time to move
@@ -61,7 +61,7 @@ async def beep(piezo: PWMType, freqhz: int, duration: int):
     Generate a frequency on a pwm pin for a length of time in ms.
     """
 
-    dc = await freqtodutycycle(freqhz, piezo) # also sets piezo.dc
+    dc = await freqtodutycycle(freqhz, piezo) # piezo.dc = deg
     piezo.ctl.set_servo(piezo.pin, dc)
 
     await sleep(duration / 1000)
@@ -100,18 +100,18 @@ async def comlockcheck(combo: CombinationType) -> None:
     while True:
         await loop.run_in_executor(None, wait_for_interrupts) # wait_for_interrupts blocks synchronously,
                                                               # so we run in it executor and await output
-        with combolck: # access combo_seq so its
+        with combolck: # access combo_seq so its threadsafe
             if comboseq == combo.seq:
                 await gather( # remove callbacks
                     loop.run_in_executor(None, del_interrupt_callback, p) for p in combo.pins
                 )
 
-                comboseq.clear() # reset inputs
+                comboseq.clear()
 
-                break # exit loop, and return to comlockseq
+                break
 
             elif len(comboseq) >= len(combo.seq):
-                comboseq.clear() # reset inputs
+                comboseq.clear()
 
 async def comlockseq(combo: CombinationType, callback: Callable) -> None:
     """

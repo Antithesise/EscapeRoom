@@ -33,7 +33,7 @@ class PWMType:
     dc: int = field(default=0, init=False)
     "The current duty cycle of the pin"
 
-@dataclass
+@dataclass(repr=False)
 class ServoType: # not inherited from PWMType due to arg ordering (kw_only doesn't fix this)
     """
     An internal class representing a servo motor.
@@ -52,6 +52,9 @@ class ServoType: # not inherited from PWMType due to arg ordering (kw_only doesn
 
     dc: int = field(default=0, init=False)
     "The current duty cycle of the pin"
+
+    def __repr__(self) -> str:
+        return f"Servo on pin {self.pin}"
 
 class CombinationType(NamedTuple):
     """

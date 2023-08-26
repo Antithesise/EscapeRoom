@@ -1,7 +1,3 @@
 __pycache__/
 .py[co]
-
-# folders for local install of RPIO. Used for development on windwos
-RPIO/
-c_gpio/
-c_pwm/
+.vscode/

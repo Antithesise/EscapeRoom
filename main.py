@@ -7,7 +7,7 @@ The application's main script.
 """
 
 from asyncio import CancelledError, Task, create_task, gather, get_event_loop, run, sleep
-from logging import error, info
+from logging import error, debug
 from functools import partial
 from platform import machine
 from threading import Lock
@@ -34,7 +34,7 @@ loop = get_event_loop()
 
 async def reset() -> Task | None:
     async def resetbg():
-        info("Reseting...")
+        debug("Reseting...")
 
         await gather(
             moveservo(DOOR0, 0),
@@ -47,6 +47,8 @@ async def moveservo(servo: ServoType, deg: int) -> None:
     """
     Activate a servo running on a gpio pin.
     """
+
+    debug(f"Moving {servo} to pos {deg}")
 
     dc = await degtodutycycle(deg, servo) # servo.dc = deg
     servo.ctl.set_servo(servo.pin, dc)
@@ -106,14 +108,14 @@ async def comlockcheck(combo: CombinationType) -> None:
                     loop.run_in_executor(None, del_interrupt_callback, p) for p in combo.pins
                 )
 
-                info("Correct combination detected.")
+                debug("Correct combination detected.")
 
                 comboseq.clear()
 
                 break
 
             elif len(comboseq) >= len(combo.seq):
-                info(f"Incorrect combination detected: {comboseq}.")
+                debug(f"Incorrect combination detected: {comboseq}.")
 
                 comboseq.clear()
 
@@ -134,7 +136,7 @@ async def comlockseq(combo: CombinationType, callback: Callable) -> None:
 
     await comlockcheck(combo) # blocks until correct code is inputted
 
-    info(f"Calling {callback.__name__}")
+    debug(f"Calling {callback.__name__}")
 
     return callback()
 
@@ -144,7 +146,7 @@ async def main() -> None:
     The application's main loop.
     """
 
-    info("Starting main loop...")
+    debug("Starting main loop...")
 
     while True:
         await reset()
@@ -161,12 +163,12 @@ async def main() -> None:
 
 
         except EOFError:
-            info("^D detected, reseting...")
+            debug("^D detected, reseting...")
 
             continue
 
         except KeyboardInterrupt:
-            info("^C detected, exiting")
+            debug("^C detected, exiting")
 
             return
 

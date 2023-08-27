@@ -215,6 +215,9 @@ def terminate() -> None:
 def fatal(fmt: str, *args: Any) -> None:
     error(fmt, args)
 
+    if soft_fatal:
+        return EXIT_FAILURE
+
     # Shutdown all DMA and PWM activity
     shutdown()
     exit(EXIT_FAILURE)
@@ -228,10 +231,10 @@ def setup_sighandlers() -> None:
         if i in [SIGCHLD, SIGCONT, SIGTSTP, SIGTTIN, SIGTTOU, SIGURG, SIGWINCH, SIGPIPE, SIGINT, SIGIO]:
             continue
 
-        struct sigaction sa
-        memset(&sa, 0, sizeof(sa))
-        sa.sa_handler = (None *) terminate
-        sigaction(i, &sa, NULL)
+        # struct sigaction sa # FIXME: what is this?
+        # memset(&sa, 0, sizeof(sa))
+        # sa.sa_handler = (None *) terminate
+        # sigaction(i, &sa, 0)
 
 
 # Memory mapping
@@ -242,11 +245,11 @@ def mem_virt_to_phys(channel: int, virt: None) -> int:
 
 # Peripherals memory mapping
 def map_peripheral(base: int, len: int) -> None:
-    vaddr = mmap(NULL, len, PROT_READ|PROT_WRITE, MAP_SHARED, 0, base)
+    vaddr = mmap(0, len, PROT_READ|PROT_WRITE, MAP_SHARED, 0, base)
 
     if vaddr == MAP_FAILED:
         fatal("rpio-pwm: Failed to map peripheral at 0x%08x: %m\n", base)
-        return NULL
+        return 0
 
     return vaddr
 
@@ -259,24 +262,28 @@ def get_cb(channel: int) -> int:
 # Reset this channel to original state (all samples=0, all cbs=clr0)
 def clear_channel(channel: int) -> int:
     phys_gpclr0: int = 0x7e200000 + 0x28
-    dma_cb_t *cbp = (dma_cb_t *) get_cb(channel)
-    *dp: int = (*): int channels[channel].virtbase
+    cbp = dma_cb_t(get_cb(channel))
+    dp = channels[channel].virtbase
 
     debug("clear_channel: channel=%d\n", channel)
-    if !channels[channel].virtba:
+    if not channels[channel].virtba:
         return fatal("Error: channel %d has not been initialized with 'init_channel(..)'\n", channel)
 
        # First we have to stop all currently enabled pulses
     for i in range(channels[channel].num_samples):
-        cbp->dst = phys_gpclr0
-        cbp += 2
+        # cbp.dst = phys_gpclr0 # FIXME: implement stuct stuff
+        # cbp += 2
+
+        pass # XXX: Remove once done
 
        # Let DMA do one cycle to actually clear them
     udelay(channels[channel].subcycle_time_us)
 
        # Finally set all samples to 0 (instead of gpio_mask)
     for i in range(channels[channel].num_samples):
-        *(dp + i) = 0
+        # *(dp + i) = 0 # FIXME
+
+        pass
 
     return EXIT_SUCCESS
 
@@ -284,17 +291,19 @@ def clear_channel(channel: int) -> int:
 
 # Clears all pulses for a specific gpio on this channel. Also sets the GPIO to Low.
 def clear_channel_gpio(channel: int, gpio: int) -> int:
-    *dp: int = (*): int channels[channel].virtbase
+    dp = channels[channel].virtbase
 
     debug("clear_channel_gpio: channel=%d, gpio=%d\n", channel, gpio)
-    if !channels[channel].virtba:
+    if not channels[channel].virtba:
         return fatal("Error: channel %d has not been initialized with 'init_channel(..)'\n", channel)
-    if (gpio_setup & 1<<gpio) ==:
+    if gpio_setup & (1 << gpio) ==0:
         return fatal("Error: cannot clear gpio %d not yet been set up\n", gpio)
 
        # Remove this gpio from all samples:
     for i in range(channels[channel].num_samples):
-        *(dp + i) &= ~(1 << gpio) # set just this gpio's bit to 0
+        # *(dp + i) &= ~(1 << gpio) # set just this gpio's bit to 0 # FIXME
+
+        pass
 
        # Let DMA do one cycle before setting GPIO to low.
      #udelay(channels[channel].subcycle_time_us)
@@ -315,30 +324,30 @@ def clear_channel_gpio(channel: int, gpio: int) -> int:
 def add_channel_pulse(channel: int, gpio: int, width_start: int, width: int) -> int:
     phys_gpclr0: int = 0x7e200000 + 0x28
     phys_gpset0: int = 0x7e200000 + 0x1c
-    dma_cb_t *cbp = (dma_cb_t *) get_cb(channel) + (width_start * 2)
+    cbp = dma_cb_t(get_cb(channel) + (width_start * 2))
     dp = channels[channel].virtbase
 
     debug("add_channel_pulse: channel=%d, gpio=%d, start=%d, width=%d\n", channel, gpio, width_start, width)
     if not channels[channel].virtba:
         return fatal("Error: channel %d has not been initialized with 'init_channel(..)'\n", channel)
-    if width_start + width > channels[channel].width_max + 1 or width_start <:
+    if width_start + width > channels[channel].width_max + 1 or width_start < 0:
         return fatal("Error: cannot add pulse to channel %d: width_start+width exceed max_width of %d\n", channel, channels[channel].width_max)
 
-    if (gpio_setup & 1<<gpio) ==:
+    if gpio_setup & (1 << gpio) == 0:
         init_gpio(gpio)
 
        # enable or disable gpio at this point in the cycle
-    *(dp + width_start) |= 1 << gpio
-    cbp->dst = phys_gpset0
+    # *(dp + width_start) |= 1 << gpio # FIXME
+    cbp.dst = phys_gpset0
 
        # Do nothing for the specified width
-    for (i = 1 i < width - 1):
-        *(dp + width_start + i) &= ~(1 << gpio) # set just this gpio's bit to 0
+    for i in range(1, width - 1):
+        # *(dp + width_start + i) &= ~(1 << gpio) # set just this gpio's bit to 0 FIXME
         cbp += 2
 
        # Clear GPIO at end
-    *(dp + width_start + width) |= 1 << gpio
-    cbp->dst = phys_gpclr0
+    # FIXME *(dp + width_start + width) |= 1 << gpio
+    cbp.dst = phys_gpclr0
     return EXIT_SUCCESS
 
 
@@ -346,30 +355,30 @@ def add_channel_pulse(channel: int, gpio: int, width_start: int, width: int) -> 
 
 # Get a channel's pagemap
 def make_pagemap(channel: int) -> int:
-    i, fd, memfd, pid
-    char pagemap_fn[64]
+    pagemap_fn = ""
 
     channels[channel].page_map = malloc(channels[channel].num_pages * sizeof(*channels[channel].page_map))
 
-    if channels[channel].page_map ==:
+    if channels[channel].page_map == 0:
         return fatal("rpio-pwm: Failed to malloc page_map: %m\n")
     memfd = open("/dev/mem", O_RDWR)
-    if memfd <:
+    if memfd < 0:
         return fatal("rpio-pwm: Failed to open /dev/mem: %m\n")
     pid = getpid()
     sprintf(pagemap_fn, "/proc/%d/pagemap", pid)
     fd = open(pagemap_fn, O_RDONLY)
-    if fd <:
+    if fd < 0:
         return fatal("rpio-pwm: Failed to open %s: %m\n", pagemap_fn)
     if lseek(fd, int(channels[channel].virtbase >> 9), SEEK_SET, int(channels[channel].virtbase >> 9)):
                         return fatal("rpio-pwm: Failed to seek on %s: %m\n", pagemap_fn)
 
     for i in range(channels[channel].num_pages):
-        uint64_t pfn
+        pfn = void *(0)
+
         channels[channel].page_map[i].virtaddr = channels[channel].virtbase + i * PAGE_SIZE
            # Following line forces page to be allocated
         channels[channel].page_map[i].virtaddr[0] = 0
-        if read(fd, &pfn, sizeof(pfn)) != sizeof(pf:
+        if read(fd, pfn, sizeof(pfn)) != sizeof(pfn):
             return fatal("rpio-pwm: Failed to read %s: %m\n", pagemap_fn)
         if ((pfn >> 55) & 0x1bf) != 0x1:
             return fatal("rpio-pwm: Page %d not present (pfn 0x%016llx)\n", i, pfn)
@@ -381,31 +390,29 @@ def make_pagemap(channel: int) -> int:
 
 
 def init_virtbase(channel: int) -> int:
-    channels[channel].virtbase = mmap(NULL, channels[channel].num_pages * PAGE_SIZE, PROT_READ|PROT_WRITE,
+    channels[channel].virtbase = mmap(0, channels[channel].num_pages * PAGE_SIZE, PROT_READ|PROT_WRITE,
             MAP_SHARED|MAP_ANONYMOUS|MAP_NORESERVE|MAP_LOCKED, -1, 0)
     if channels[channel].virtbase == MAP_FAIL:
         return fatal("rpio-pwm: Failed to mmap physical pages: %m\n")
-    if (unsigned long)channels[channel].virtbase & (PAGE_SIZE-:
+    if channels[channel].virtbase & (PAGE_SIZE - 1):
         return fatal("rpio-pwm: Virtual address is not page aligned\n")
     return EXIT_SUCCESS
 
 
 # Initialize control block for this channel
 def init_ctrl_data(channel: int) -> int:
-    dma_cb_t *cbp = (dma_cb_t *) get_cb(channel)
-    sample: = channels[channel].virtbase
+    cbp = dma_cb_t(get_cb(channel))
+    sample = channels[channel].virtbase
 
-    phys_fifo_addr: int
     phys_gpclr0: int = 0x7e200000 + 0x28
-    i
 
     channels[channel].dma_reg = map_peripheral(DMA_BASE, DMA_LEN) + (DMA_CHANNEL_INC * channel)
-    if channels[channel].dma_reg == NU:
+    if channels[channel].dma_reg == 0:
         return EXIT_FAILURE
 
     if delay_hw == DELAY_VIA_P:
         phys_fifo_addr = (PWM_BASE | 0x7e000000) + 0x18
-    else
+    else:
         phys_fifo_addr = (PCM_BASE | 0x7e000000) + 0x04
 
        # Reset complete per-sample gpio mask to 0
@@ -415,29 +422,29 @@ def init_ctrl_data(channel: int) -> int:
        # - first: clear gpio and jump to second
        # - second: jump to next CB
     for i in range(channels[channel].num_samples):
-        cbp->info = DMA_NO_WIDE_BURSTS | DMA_WAIT_RESP
-        cbp->src = mem_virt_to_phys(channel, sample + i) # src contains mask of which gpios need change at this sample
-        cbp->dst = phys_gpclr0 # set each sample to clear set gpios by default
-        cbp->length = 4
-        cbp->stride = 0
-        cbp->next = mem_virt_to_phys(channel, cbp + 1)
+        cbp.info = DMA_NO_WIDE_BURSTS | DMA_WAIT_RESP
+        cbp.src = mem_virt_to_phys(channel, sample + i) # src contains mask of which gpios need change at this sample
+        cbp.dst = phys_gpclr0 # set each sample to clear set gpios by default
+        cbp.length = 4
+        cbp.stride = 0
+        cbp.next = mem_virt_to_phys(channel, cbp + 1)
         cbp += 1
 
            # Delay
         if delay_hw == DELAY_VIA_P:
-            cbp->info = DMA_NO_WIDE_BURSTS | DMA_WAIT_RESP | DMA_D_DREQ | DMA_PER_MAP(5)
-        else
-            cbp->info = DMA_NO_WIDE_BURSTS | DMA_WAIT_RESP | DMA_D_DREQ | DMA_PER_MAP(2)
-        cbp->src = mem_virt_to_phys(channel, sample) # Any data will do
-        cbp->dst = phys_fifo_addr
-        cbp->length = 4
-        cbp->stride = 0
-        cbp->next = mem_virt_to_phys(channel, cbp + 1)
+            cbp.info = DMA_NO_WIDE_BURSTS | DMA_WAIT_RESP | DMA_D_DREQ | DMA_PER_MAP(5)
+        else:
+            cbp.info = DMA_NO_WIDE_BURSTS | DMA_WAIT_RESP | DMA_D_DREQ | DMA_PER_MAP(2)
+        cbp.src = mem_virt_to_phys(channel, sample) # Any data will do
+        cbp.dst = phys_fifo_addr
+        cbp.length = 4
+        cbp.stride = 0
+        cbp.next = mem_virt_to_phys(channel, cbp + 1)
         cbp += 1
 
        # The last control block links back to the first (= endless loop)
     cbp -= 1
-    cbp->next = mem_virt_to_phys(channel, get_cb(channel))
+    cbp.next = mem_virt_to_phys(channel, get_cb(channel))
 
        # Initialize the DMA channel 0 (p46, 47)
     channels[channel].dma_reg[DMA_CS] = DMA_RESET # DMA channel reset
@@ -495,15 +502,15 @@ def init_hardware() -> None:
 
 # Setup a channel with a specific subcycle time. After that pulse-widths can be
 # added at any time.
-def init_channel(channel: int, int subcycle_time_us) -> int:
+def init_channel(channel: int, subcycle_time_us: int) -> int:
     log_debug("Initializing channel %d...\n", channel)
-    if _is_setup ==:
+    if _is_setup == 0:
         return fatal("Error: you need to call `setup(..)` before initializing channels\n")
-    if channel > DMA_CHANNELS:
+    if channel > DMA_CHANNELS - 1:
         return fatal("Error: maximum channel is %d (requested channel %d)\n", DMA_CHANNELS-1, channel)
-    if channels[channel].virtba:
+    if channels[channel].virtbase:
         return fatal("Error: channel %d already initialized.\n", channel)
-    if subcycle_time_us < SUBCYCLE_TIME_US_M:
+    if subcycle_time_us < SUBCYCLE_TIME_US_MIN:
         return fatal("Error: subcycle time %dus is too small (min=%dus)\n", subcycle_time_us, SUBCYCLE_TIME_US_MIN)
 
     # Setup Data
@@ -515,18 +522,18 @@ def init_channel(channel: int, int subcycle_time_us) -> int:
                                        PAGE_SIZE - 1) >> PAGE_SHIFT)
 
        # Initialize channel
-    if init_virtbase(channel) == EXIT_FAILU:
+    if init_virtbase(channel) == EXIT_FAILURE:
         return EXIT_FAILURE
-    if make_pagemap(channel) == EXIT_FAILU:
+    if make_pagemap(channel) == EXIT_FAILURE:
         return EXIT_FAILURE
-    if init_ctrl_data(channel) == EXIT_FAILU:
+    if init_ctrl_data(channel) == EXIT_FAILURE:
         return EXIT_FAILURE
     return EXIT_SUCCESS
 
 
 # Print some info about a channel
 def print_channel(channel: int) -> int:
-    if channel > DMA_CHANNELS -:
+    if channel > DMA_CHANNELS - 1:
         return fatal("Error: you tried to print channel %d, but max channel is %d\n", channel, DMA_CHANNELS-1)
     log_debug("Subcycle time: %dus\n", channels[channel].subcycle_time_us)
     log_debug("PW Increments: %dus\n", pulse_width_incr_us)
@@ -536,27 +543,27 @@ def print_channel(channel: int) -> int:
     return EXIT_SUCCESS
 
 
-def set_softfatal(int enabled) -> None:
+def set_softfatal(enabled: int) -> None:
+    global soft_fatal
+
     soft_fatal = enabled
 
 
-str
-get_error_message()
-{
+def get_error_message() -> str:
     return error_message
 
 
 # setup(..) needs to be called once and starts the PWM timer. delay hardware
 # and pulse-width-increment-granularity is set for all DMA channels and cannot
 # be changed during runtime due to hardware mechanics (specific PWM timing).
-def setup(int pw_incr_us, int hw) -> int:
+def setup(pw_incr_us: int, hw: int) -> int:
     delay_hw = hw
     pulse_width_incr_us = pw_incr_us
 
-    if _is_setup ==:
+    if _is_setup == 0:
         return fatal("Error: setup(..) has already been called before\n")
 
-    log_debug("Using hardware: %s\n", delay_hw == DELAY_VIA_PWM ? "PWM" : "PCM")
+    log_debug("Using hardware: %s\n", "PWM" if delay_hw == DELAY_VIA_PWM else "PCM")
     log_debug("PW increments:  %dus\n", pulse_width_incr_us)
 
        # Catch all kind of kill signals
@@ -567,7 +574,7 @@ def setup(int pw_incr_us, int hw) -> int:
     pcm_reg = map_peripheral(PCM_BASE, PCM_LEN)
     clk_reg = map_peripheral(CLK_BASE, CLK_LEN)
     gpio_reg = map_peripheral(GPIO_BASE, GPIO_LEN)
-    if pwm_reg == NULL or pcm_reg == NULL or clk_reg == NULL or gpio_reg == NU:
+    if 0 in [pwm_reg, pcm_reg, clk_reg, gpio_reg]:
         return EXIT_FAILURE
 
        # Start PWM/PCM timing activity
@@ -582,7 +589,7 @@ def is_setup() -> int:
 
 
 def is_channel_initialized(channel: int) -> int:
-    return channels[channel].virtbase ? 1 : 0
+    return 1 if channels[channel].virtbase else 0
 
 
 def get_pulse_incr_us() -> int:
@@ -625,4 +632,3 @@ def main(argc: int, argv: str) -> int:
        # All done
     shutdown()
     exit(0)
-

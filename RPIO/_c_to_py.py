@@ -1,4 +1,4 @@
-from typing import  Any, Generic, Self, Type, TypeVar, final, overload
+from typing import Any, Generic, Self, Type, TypeVar, final, overload
 
 _T = TypeVar("_T", covariant=True)
 _NT = TypeVar("_NT")
@@ -115,7 +115,6 @@ class ObjPtr(Generic[_T]):
             raise StopIteration
 
         return self.obj
-
 
 
 void = Ptr(type)

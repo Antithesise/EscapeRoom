@@ -229,7 +229,5 @@ def py_setwarnings(state: int) -> None:
 
 # channel2gpio binding
 def py_channel_to_gpio(channel: int) -> int | None:
-    if (gpio := channel_to_gpio(channel)) < 0:
-        return
-
-    return gpio
+    if (gpio := channel_to_gpio(channel)) >= 0:
+        return gpio

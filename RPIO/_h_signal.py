@@ -1,4 +1,4 @@
-from RPIO._c_corecrt import *
+from RPIO._h_corecrt import *
 
 from typing import NewType
 

@@ -161,7 +161,6 @@ async def main() -> None:
 
             # next seq
 
-
         except EOFError:
             debug("^D detected, reseting...")
 

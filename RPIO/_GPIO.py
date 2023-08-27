@@ -5,6 +5,7 @@ __all__ = []
 from RPIO._py_gpio import *
 
 from atexit import register as Py_AtExit
+from logging import info
 
 from typing import TypeVar
 
@@ -87,22 +88,22 @@ PUD_DOWN = PyModule_AddObject("PUD_DOWN", pud_down)
 cache_rpi_revision()
 match revision_int:
     case 1:
-        pin_to_gpio = pin_to_gpio_rev1
-        gpio_to_pin = gpio_to_pin_rev1
+        pin_to_gpio = void *pin_to_gpio_rev1
+        gpio_to_pin = void *gpio_to_pin_rev1
 
     case 2:
-        pin_to_gpio = pin_to_gpio_rev2
-        gpio_to_pin = gpio_to_pin_rev2
+        pin_to_gpio = void *pin_to_gpio_rev2
+        gpio_to_pin = void *gpio_to_pin_rev2
 
     case 3:
-        pin_to_gpio = pin_to_gpio_rev3
-        gpio_to_pin = gpio_to_pin_rev3
+        pin_to_gpio = void *pin_to_gpio_rev3
+        gpio_to_pin = void *gpio_to_pin_rev3
 
     case _:
-        pin_to_gpio = pin_to_gpio_rev3
-        gpio_to_pin = gpio_to_pin_rev3
+        info("Running mock RPIO...")
 
-        warn("This module can only be run on a Raspberry Pi! Running mock library...")
+        pin_to_gpio = void *pin_to_gpio_rev3
+        gpio_to_pin = void *gpio_to_pin_rev3
 
 rpi_revision = revision_int
 RPI_REVISION = PyModule_AddObject("RPI_REVISION", rpi_revision)

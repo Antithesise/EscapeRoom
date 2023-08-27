@@ -1,7 +1,7 @@
 from functools import cache as static
 from warnings import warn
 
-from RPIO._c_to_py import Ptr, void
+from RPIO._c_to_py import *
 
 # from RPIO._h_Python import *
 from RPIO._c_gpio import *
@@ -34,7 +34,7 @@ version: int
 pin_to_gpio_rev1 = [-1, -1, -1, 0, -1, 1, -1, 4, 14, -1, 15, 17, 18, 21, -1, 22, 23, -1, 24, 10, -1, 9, 25, 11, 8, -1, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
 pin_to_gpio_rev2 = [-1, -1, -1, 2, -1, 3, -1, 4, 14, -1, 15, 17, 18, 27, -1, 22, 23, -1, 24, 10, -1, 9, 25, 11, 8, -1, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
 pin_to_gpio_rev3 = [-1, -1, -1, 2, -1, 3, -1, 4, 14, -1, 15, 17, 18, 27, -1, 22, 23, -1, 24, 10, -1, 9, 24, 11, 7, -1, 7, -1, -1, 5, -1, 6, 12, 13, -1, 19, 16, 26, 20, -1, 21]
-pin_to_gpio: list[int]
+pin_to_gpio: Ptr[list[int]] = void *[]
 
 # Board header info is shifted left 8 bits (leaves space for up to 255 channel ids per header)
 HEADER_P1 = 0 << 8
@@ -42,7 +42,7 @@ HEADER_P5 = 5 << 8
 gpio_to_pin_rev1 = [3, 5, -1, -1, 7, 0, -1, 26, 24, 21, 19, 23, -1, -1, 8, 10, -1, 11, 12, -1, -1, 13, 15, 16, 18, 22, -1, -1, -1, -1, -1, -1, -1]
 gpio_to_pin_rev2 = [-1, -1, 3, 5, 7, 0, -1, 26, 24, 21, 19, 23, -1, -1, 8, 10, -1, 11, 12, -1, -1, -1, 15, 16, 18, 22, -1, 15, 3 | HEADER_P5, 4 | HEADER_P5, 5 | HEADER_P5, 6 | HEADER_P5, -1]
 gpio_to_pin_rev3 = [-1, -1, 3, 5, 7, 29, 31, 26, 24, 21, 19, 23, 32, 33, 8, 10, 36, 11, 12, 35, 38, 40, 15, 16, 18, 22, 37, 13, -1, -1, -1, -1, 0]
-gpio_to_pin: list[int]
+gpio_to_pin: Ptr[list[int]] = void *[]
 
 # Flag whether to show warnings
 gpio_warnings = 1
@@ -73,6 +73,8 @@ def cache_rpi_revision() -> None:
 # exact pin number with (retval & 255).
 @static
 def bcm_to_board(bcm_gpio_id: int) -> int:
+    global gpio_to_pin
+
     return gpio_to_pin[bcm_gpio_id]
 
 # channel_to_bcm() returns the bcm gpio id for the supplied channel
@@ -80,6 +82,8 @@ def bcm_to_board(bcm_gpio_id: int) -> int:
 # To use P5 you need to use BCM gpio ids (`setmode(BCM)`).
 @static
 def board_to_bcm(board_pin_id: int) -> int:
+    global pin_to_gpio
+
     return pin_to_gpio[board_pin_id]
 
 # module_setup is run on import of the GPIO module and calls the setup() method in c_gpio.c
@@ -88,8 +92,7 @@ def module_setup() -> int:
 
     # Set all gpios to input in internal direction (not the system)
 
-    for i in range(54):
-        gpio_direction[i] = -1
+    gpio_direction = [-1] * 54
 
     setup() # mock library doesn't need to perform checks
 

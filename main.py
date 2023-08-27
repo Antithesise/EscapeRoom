@@ -6,16 +6,21 @@ The application's main script.
 © 2023 Antithesise
 """
 
-from asyncio import CancelledError, Task, create_task, gather, get_event_loop, run, sleep
-from logging import error, debug
+from asyncio import CancelledError, Task, create_task, gather, get_event_loop, run, sleep, timeout
+from logging import error, debug, getLogger, info
+from builtins import input as terminput # Grrrr: RPIO overrides `input` namespace
 from functools import partial
 from platform import machine
+from time import time as now # less ambiguous than `time`
 from threading import Lock
 from RPIO import *
 
 from util import * # also include config.py exports
 
 from typing import Callable
+
+
+getLogger().setLevel(10 if DEBUG else 20)
 
 
 setmode(MODE)
@@ -48,7 +53,7 @@ async def moveservo(servo: ServoType, deg: int) -> None:
     Activate a servo running on a gpio pin.
     """
 
-    debug(f"Moving {servo} to pos {deg}")
+    debug(f"Moving {servo} to pos {deg}...")
 
     dc = await degtodutycycle(deg, servo) # servo.dc = deg
     servo.ctl.set_servo(servo.pin, dc)
@@ -63,6 +68,8 @@ async def beep(piezo: PWMType, freqhz: int, duration: int):
     Generate a frequency on a pwm pin for a length of time in ms.
     """
 
+    debug("Beeping %s at %dhz for %dms...", repr(piezo), freqhz, duration)
+
     dc = await freqtodutycycle(freqhz, piezo) # piezo.dc = deg
     piezo.ctl.set_servo(piezo.pin, dc)
 
@@ -71,17 +78,24 @@ async def beep(piezo: PWMType, freqhz: int, duration: int):
     await freqtodutycycle(0, piezo) # piezo.dc = 0
     piezo.ctl.stop_servo(piezo.pin)
 
+    debug("Stopped beeping %s.", repr(piezo))
+
 async def comlockbg() -> None:
     """
     Background process(s) to run while comlockseq is running.
     """
+
+    debug("Starting combination lock background tasks...")
 
     try:
         while True:
             pass # run bg code
 
     except CancelledError:
-        pass # clean up etc.
+        debug("Stopping combination lock background tasks...")
+
+    finally:
+        debug("Stopped combination lock background tasks.")
 
 def comlockcbfactory(combo: CombinationType, pin: int) -> Callable[[], None]:
     """
@@ -89,6 +103,8 @@ def comlockcbfactory(combo: CombinationType, pin: int) -> Callable[[], None]:
     """
 
     async def callback(combo: CombinationType=combo, pin: int=pin):
+        debug("Button press detected on pin %d.", pin)
+
         with combolck:
             comboseq.append(combo.pinindex(pin)) # add pin to inputs
 
@@ -115,7 +131,7 @@ async def comlockcheck(combo: CombinationType) -> None:
                 break
 
             elif len(comboseq) >= len(combo.seq):
-                debug(f"Incorrect combination detected: {comboseq}.")
+                debug("Incorrect combination detected: %s.", ", ".join(comboseq))
 
                 comboseq.clear()
 
@@ -123,6 +139,8 @@ async def comlockseq(combo: CombinationType, callback: Callable) -> None:
     """
     Implement a 4 digit combintation lock running on gpio pins.
     """
+
+    debug("Starting combination lock sequence...")
 
     await gather( # add callbacks
         loop.run_in_executor(None, partial(
@@ -136,9 +154,19 @@ async def comlockseq(combo: CombinationType, callback: Callable) -> None:
 
     await comlockcheck(combo) # blocks until correct code is inputted
 
-    debug(f"Calling {callback.__name__}")
+    debug("Calling %s...", callback.__name__)
 
     return callback()
+
+async def winseq(timeleft: float | int) -> None:
+    info("Escaped successfully!!")
+
+    if timeleft > 0:
+        info("Your time was %ds", round(TIMEOUT - timeleft))
+
+
+async def failseq() -> None:
+    info("Attempt failed!!")
 
 
 async def main() -> None:
@@ -152,28 +180,45 @@ async def main() -> None:
         await reset()
 
         try:
-            clbg = create_task(comlockbg())
+            try:
+                async with timeout(TIMEOUT) as gameto:
+                    clbg = create_task(comlockbg())
 
-            await comlockseq(COMBO, clbg.cancel) # start combo lock sequence, bloxking until complete
-            await clbg # clean up bg code
+                    await comlockseq(COMBO, clbg.cancel) # start combo lock sequence, bloxking until complete
+                    await clbg # clean up bg code
 
-            await moveservo(DOOR0, 90)
+                    await moveservo(DOOR0, 90)
 
-            # next seq
+                    # next seq
+
+                await winseq((gameto.when() or 0) - now())
+
+            except TimeoutError:
+                await failseq()
+
+            if BLOCKAFTER:
+                info("Exit       [^C]")
+                info("Next Game  [^D]")
+
+                terminput("Waiting for input...")
 
         except EOFError:
-            debug("^D detected, reseting...")
+            info("^D detected.")
 
             continue
 
         except KeyboardInterrupt:
-            debug("^C detected, exiting")
+            info("^C detected.")
 
-            return
+            break
+
+    debug("Exiting main loop...")
 
 
 if __name__ == "__main__":
     if machine() != "armv7l":
         error("This script must be run on Raspberry Pi. Running mock library...")
+
+    debug("test")
 
     run(main())

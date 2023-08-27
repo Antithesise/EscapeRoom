@@ -58,6 +58,7 @@ Example of using the low-level methods:
     PWM.cleanup()
 """
 from RPIO.PWM import _PWM
+from RPIO._c_to_py import *
 
 #
 # Constants from pwm.c
@@ -84,7 +85,7 @@ def setup(pulse_incr_us=PULSE_WIDTH_INCREMENT_GRANULARITY_US_DEFAULT, \
         pulse_incr_us: the pulse width increment granularity (deault=10us)
         delay_hw: either PWM.DELAY_VIA_PWM (default) or PWM.DELAY_VIA_PCM
     """
-    return _PWM.setup(pulse_incr_us, delay_hw)
+    return _PWM.setup(void *pulse_incr_us, void *delay_hw)
 
 
 def cleanup():
@@ -167,8 +168,8 @@ class Servo:
         # Clear servo on GPIO17
         servo.stop_servo(17)
     """
-    _subcycle_time_us = None
-    _dma_channel = None
+    _subcycle_time_us = 20000
+    _dma_channel = 0
 
     def __init__(self, dma_channel=0, subcycle_time_us=20000, \
             pulse_incr_us=10):
@@ -180,10 +181,10 @@ class Servo:
         self._subcycle_time_us = subcycle_time_us
         if _PWM.is_setup():
             _pw_inc = _PWM.get_pulse_incr_us()
-            if not pulse_incr_us == _pw_inc:
+            if pulse_incr_us != _pw_inc:
                 raise AttributeError(("Error: PWM is already setup with pulse-"
                         "width increment granularity of %sus instead of %sus")\
-                         % (_pw_inc, self.pulse_incr_us))
+                         % (_pw_inc, pulse_incr_us))
         else:
             setup(pulse_incr_us=pulse_incr_us)
 

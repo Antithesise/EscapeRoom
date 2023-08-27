@@ -19,7 +19,7 @@ piezoctl = PWM.Servo()
 servoctl = PWM.Servo()
 
 
-@dataclass # I see no reason why these dataclasses should be immutable
+@dataclass(repr=False) # I see no reason why these dataclasses should be immutable
 class PWMType:
     """
     An internal class representing a pwm pin.
@@ -33,6 +33,9 @@ class PWMType:
     dc: int = field(default=0, init=False)
     "The current duty cycle of the pin"
 
+    def __repr__(self) -> str:
+        return f"Piezo on pin {self.pin}"
+
 @dataclass(repr=False)
 class ServoType: # not inherited from PWMType due to arg ordering (kw_only doesn't fix this)
     """
@@ -41,7 +44,7 @@ class ServoType: # not inherited from PWMType due to arg ordering (kw_only doesn
 
     pin: int
     "The control pin number"
-    deg: int = 180
+    deg: float = 180.0
     "The range of motion in deg"
     mindc: int = 1000
     "The 0deg duty cycle in μs"

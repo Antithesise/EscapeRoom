@@ -17,7 +17,7 @@ from RPIO._c_to_py import *
 
 from logging import debug, error
 
-from typing import Any, NamedTuple
+from typing import Any
 
 # 15 DMA channels are usable on the RPi (0..14)
 DMA_CHANNELS = 15
@@ -96,41 +96,41 @@ PCMCLK_CNTL = 38
 PCMCLK_DIV = 39
 
 # DMA Control Block Data Structure (p40): 8 words (256 bits)
-class dma_cb_t(NamedTuple):
-    info: int # TI: transfer information
-    src: int # SOURCE_AD
-    dst: int # DEST_AD
-    length: int # TXFR_LEN: transfer length
-    stride: int # 2D stride mode
-    next: int # NEXTCONBK
-    pad: tuple[int, int] # _reserved_
+class dma_cb_t:
+    info: int = 0 # TI: transfer information
+    src: int = 0 # SOURCE_AD
+    dst: int = 0 # DEST_AD
+    length: int = 0 # TXFR_LEN: transfer length
+    stride: int = 0 # 2D stride mode
+    next: int = 0 # NEXTCONBK
+    pad: tuple[int, int] = (0, 0) # _reserved_
 
 # Memory mapping
-class page_map_t(NamedTuple):
-    virtaddr: int
-    physaddr: int
+class page_map_t:
+    virtaddr: int = 0
+    physaddr: int = 0
 
 # Main control structure per channel
-class channel(NamedTuple):
-    virtbase: int
-    sample: int
-    cb: dma_cb_t
-    page_map: page_map_t
-    dma_reg: Ptr[int]
+class channel:
+    virtbase: int = 0
+    sample: int = 0
+    cb: dma_cb_t = dma_cb_t()
+    page_map: page_map_t = page_map_t()
+    dma_reg: Ptr[int] = void *(0)
 
     # Set by user
-    subcycle_time_us: int
+    subcycle_time_us: int = 0
 
     # Set by system
-    num_samples: int
-    num_cbs: int
-    num_pages: int
+    num_samples: int = 0
+    num_cbs: int = 0
+    num_pages: int = 0
 
     # Used only for control purposes
-    width_max: int
+    width_max: int = 0
 
 # One control structure per channel
-channels: list[channel] = []
+channels: list[channel] = [channel() for c in range(DMA_CHANNELS)]
 
 # Pulse width increment granularity
 pulse_width_incr_us = -1
@@ -138,10 +138,10 @@ _is_setup = 0
 gpio_setup = 0 # bitfield for setup gpios (setup = out/low)
 
 # Common registers
-pwm_reg: Ptr[int]
-pcm_reg: Ptr[int]
-clk_reg: Ptr[int]
-gpio_reg: Ptr[int]
+pwm_reg: Ptr[int] = void *(0)
+pcm_reg: Ptr[int] = void *(0)
+clk_reg: Ptr[int] = void *(0)
+gpio_reg: Ptr[int] = void *(0)
 
 # Defaults
 delay_hw = DELAY_VIA_PWM
@@ -212,15 +212,15 @@ def terminate() -> None:
 # Shutdown with an error message. Returns EXIT_FAILURE for convenience.
 # if soft_fatal is set to 1, a call to `fatal(..)` will not shut down
 # PWM/DMA activity (used in the Python wrapper).
-def fatal(fmt: str, *args: Any) -> None:
+def fatal(fmt: str, *args: Any) -> int:
     error(fmt, args)
 
-    if soft_fatal:
-        return EXIT_FAILURE
+    if not soft_fatal:
+        # Shutdown all DMA and PWM activity
+        shutdown()
+        exit(EXIT_FAILURE)
 
-    # Shutdown all DMA and PWM activity
-    shutdown()
-    exit(EXIT_FAILURE)
+    return EXIT_FAILURE
 
 
 # Catch all signals possible - it is vital we kill the DMA engine
@@ -238,18 +238,21 @@ def setup_sighandlers() -> None:
 
 
 # Memory mapping
-def mem_virt_to_phys(channel: int, virt: None) -> int:
+def mem_virt_to_phys(channel: int, virt: int) -> int:
     offset = virt - channels[channel].virtbase
     return channels[channel].page_map[offset >> PAGE_SHIFT].physaddr + (offset % PAGE_SIZE)
 
 
 # Peripherals memory mapping
-def map_peripheral(base: int, len: int) -> None:
-    vaddr = mmap(0, len, PROT_READ|PROT_WRITE, MAP_SHARED, 0, base)
+# def map_peripheral(base: int, len: int) -> Memory | None:
+def map_peripheral(base: int, len: int) -> Ptr[int]:
+    # vaddr = mmap(0, len, PROT_READ|PROT_WRITE, MAP_SHARED, 0, base)
+
+    vaddr = void *base
 
     if vaddr == MAP_FAILED:
         fatal("rpio-pwm: Failed to map peripheral at 0x%08x: %m\n", base)
-        return 0
+        return
 
     return vaddr
 
@@ -266,7 +269,7 @@ def clear_channel(channel: int) -> int:
     dp = channels[channel].virtbase
 
     debug("clear_channel: channel=%d\n", channel)
-    if not channels[channel].virtba:
+    if not channels[channel].virtbase:
         return fatal("Error: channel %d has not been initialized with 'init_channel(..)'\n", channel)
 
        # First we have to stop all currently enabled pulses
@@ -294,7 +297,7 @@ def clear_channel_gpio(channel: int, gpio: int) -> int:
     dp = channels[channel].virtbase
 
     debug("clear_channel_gpio: channel=%d, gpio=%d\n", channel, gpio)
-    if not channels[channel].virtba:
+    if not channels[channel].virtbase:
         return fatal("Error: channel %d has not been initialized with 'init_channel(..)'\n", channel)
     if gpio_setup & (1 << gpio) ==0:
         return fatal("Error: cannot clear gpio %d not yet been set up\n", gpio)
@@ -328,7 +331,7 @@ def add_channel_pulse(channel: int, gpio: int, width_start: int, width: int) -> 
     dp = channels[channel].virtbase
 
     debug("add_channel_pulse: channel=%d, gpio=%d, start=%d, width=%d\n", channel, gpio, width_start, width)
-    if not channels[channel].virtba:
+    if not channels[channel].virtbase:
         return fatal("Error: channel %d has not been initialized with 'init_channel(..)'\n", channel)
     if width_start + width > channels[channel].width_max + 1 or width_start < 0:
         return fatal("Error: cannot add pulse to channel %d: width_start+width exceed max_width of %d\n", channel, channels[channel].width_max)
@@ -459,6 +462,8 @@ def init_ctrl_data(channel: int) -> int:
 
 # Initialize PWM or PCM hardware once for all channels (10MHz)
 def init_hardware() -> None:
+    global delay_hw, pulse_width_incr_us, pwm_reg, pcm_reg, clk_reg, gpio_reg
+
     if delay_hw == DELAY_VIA_PWM:
            # Initialise PWM
         pwm_reg[PWM_CTL] = 0
@@ -503,7 +508,7 @@ def init_hardware() -> None:
 # Setup a channel with a specific subcycle time. After that pulse-widths can be
 # added at any time.
 def init_channel(channel: int, subcycle_time_us: int) -> int:
-    log_debug("Initializing channel %d...\n", channel)
+    debug("Initializing channel %d...\n", channel)
     if _is_setup == 0:
         return fatal("Error: you need to call `setup(..)` before initializing channels\n")
     if channel > DMA_CHANNELS - 1:
@@ -535,11 +540,11 @@ def init_channel(channel: int, subcycle_time_us: int) -> int:
 def print_channel(channel: int) -> int:
     if channel > DMA_CHANNELS - 1:
         return fatal("Error: you tried to print channel %d, but max channel is %d\n", channel, DMA_CHANNELS-1)
-    log_debug("Subcycle time: %dus\n", channels[channel].subcycle_time_us)
-    log_debug("PW Increments: %dus\n", pulse_width_incr_us)
-    log_debug("Num samples:   %d\n", channels[channel].num_samples)
-    log_debug("Num CBS:       %d\n", channels[channel].num_cbs)
-    log_debug("Num pages:     %d\n", channels[channel].num_pages)
+    debug("Subcycle time: %dus\n", channels[channel].subcycle_time_us)
+    debug("PW Increments: %dus\n", pulse_width_incr_us)
+    debug("Num samples:   %d\n", channels[channel].num_samples)
+    debug("Num CBS:       %d\n", channels[channel].num_cbs)
+    debug("Num pages:     %d\n", channels[channel].num_pages)
     return EXIT_SUCCESS
 
 
@@ -556,15 +561,17 @@ def get_error_message() -> str:
 # setup(..) needs to be called once and starts the PWM timer. delay hardware
 # and pulse-width-increment-granularity is set for all DMA channels and cannot
 # be changed during runtime due to hardware mechanics (specific PWM timing).
-def setup(pw_incr_us: int, hw: int) -> int:
-    delay_hw = hw
-    pulse_width_incr_us = pw_incr_us
+def setup(pw_incr_us: Ptr[int], hw: Ptr[int]) -> int:
+    global _is_setup, delay_hw, pulse_width_incr_us, pwm_reg, pcm_reg, clk_reg, gpio_reg
 
-    if _is_setup == 0:
+    delay_hw = hw.obj
+    pulse_width_incr_us = pw_incr_us.obj
+
+    if _is_setup == 1:
         return fatal("Error: setup(..) has already been called before\n")
 
-    log_debug("Using hardware: %s\n", "PWM" if delay_hw == DELAY_VIA_PWM else "PCM")
-    log_debug("PW increments:  %dus\n", pulse_width_incr_us)
+    debug("Using hardware: %s\n", "PWM" if delay_hw == DELAY_VIA_PWM else "PCM")
+    debug("PW increments:  %dus\n", pulse_width_incr_us)
 
        # Catch all kind of kill signals
     setup_sighandlers()

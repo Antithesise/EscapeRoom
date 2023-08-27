@@ -6,34 +6,41 @@ from typing import NewType
 defined = set(dir())
 
 
-NSIG = 23  # maximum signal number + 1
+NSIG = 33  # maximum signal number + 1
 
 # Signal types
-SIGINT = 2   # interrupt
-SIGILL = 4   # illegal instruction - invalid function image
-SIGFPE = 8   # floating point exception
-SIGSEGV = 11  # segment violation
-SIGTERM = 15  # Software termination signal from kill
-SIGBREAK = 21  # Ctrl-Break sequence
-SIGABRT = 22  # abnormal termination triggered by abort call
-
-SIGABRT_COMPAT = 6   # SIGABRT compatible with other platforms, same as SIGABRT
-
-# Signal action codes
-SIG_DFL = 0     # default signal action
-SIG_IGN = 1     # ignore signal
-SIG_GET = 2     # return current value
-SIG_SGE = 3     # signal gets error
-SIG_ACK = 4     # acknowledge
-
-if "_CORECRT_BUILD" in defined:
-    # Internal use only!  Not valid as an argument to signal().
-    SIG_DIE = 5 # terminate process
-
-# Signal error value (returned by signal call on error)
-SIG_ERR = -1    # signal error value
-
-
+SIGHUP = 1 << 1
+SIGINT = 1 << 2
+SIGQUIT = 1 << 3
+SIGILL = 1 << 4
+SIGTRAP = 1 << 5
+SIGABRT = SIGIOT = 1 << 6
+SIGBUS = 1 << 7
+SIGFPE = 1 << 8
+SIGKILL = 1 << 9
+SIGUSR1 = 1 << 10
+SIGSEGV = 1 << 11
+SIGUSR2 = 1 << 12
+SIGPIPE = 1 << 13
+SIGALRM = 1 << 14
+SIGTERM = 1 << 15
+SIGCHLD = 1 << 16
+SIGCONT = 1 << 17
+SIGSTOP = 1 << 18
+SIGTSTP = 1 << 19
+SIGTTIN = 1 << 20
+SIGTTOU = 1 << 21
+SIGURG = 1 << 22
+SIGXCPU = 1 << 23
+SIGXFSZ = 1 << 24
+SIGVTALRM = 1 << 25
+SIGPROF = 1 << 26
+SIGPOLL = SIGIO = 1 << 27
+SIGSYS = SIGUNUSED = 1 << 28
+SIGSTKFLT = 1 << 29
+SIGWINCH = 1 << 30
+SIGPWR = 1 << 31
+SIGRTMIN_SIGRTMAX = 1 << 33
 
 # Pointer to exception information pointers structure
 _pxcptinfoptrs = None

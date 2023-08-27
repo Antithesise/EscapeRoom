@@ -6,11 +6,11 @@ def raise_error() -> None:
     raise RuntimeError(get_error_message())
 
 # python function int setup(int pw_incr_us, int hw)
-def py_setup(pw_incr_us: int=-1, delay_hw: int=-1) -> None:
-    if pw_incr_us == -1:
-        pw_incr_us = PULSE_WIDTH_INCREMENT_GRANULARITY_US_DEFAULT
-    if delay_hw == -1:
-        delay_hw = DELAY_VIA_PWM
+def py_setup(pw_incr_us: Ptr[int]=void *-1, delay_hw: Ptr[int]=void *-1) -> None:
+    if pw_incr_us.obj == -1:
+        pw_incr_us.obj = PULSE_WIDTH_INCREMENT_GRANULARITY_US_DEFAULT
+    if delay_hw.obj == -1:
+        delay_hw.obj = DELAY_VIA_PWM
 
     if setup(pw_incr_us, delay_hw) == EXIT_FAILURE:
         return raise_error()

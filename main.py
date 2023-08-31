@@ -17,7 +17,7 @@ from RPIO import *
 
 from util import * # also include config.py exports
 
-from typing import Callable
+from typing import Any, Callable
 
 
 getLogger().setLevel(10 if DEBUG else 20)
@@ -59,7 +59,7 @@ async def moveservo(servo: ServoType, deg: int) -> None:
     dc = await degtodutycycle(deg, servo) # servo.dc = deg
     servo.ctl.set_servo(servo.pin, dc)
 
-    await sleep(0.05) # ensure servo has had enough time to move
+    await sleep(SERVODELAY / 1000) # ensure servo has had enough time to move
 
     await degtodutycycle(0, servo) # servo.dc = 0
     servo.ctl.stop_servo(servo.pin)
@@ -113,7 +113,7 @@ def comlockcbfactory(combo: CombinationType, pin: int) -> Callable[[], None]:
 
 async def comlockcheck(combo: CombinationType) -> None:
     """
-    Check if the combination is correct.
+    Check if (and block until) the combination is correct.
     """
 
     while True:
@@ -136,7 +136,7 @@ async def comlockcheck(combo: CombinationType) -> None:
 
                 comboseq.clear()
 
-async def comlockseq(combo: CombinationType, callback: Callable) -> None:
+async def comlockseq(combo: CombinationType, callback: Callable[..., Any]) -> None:
     """
     Implement a 4 digit combintation lock running on gpio pins.
     """
@@ -179,7 +179,7 @@ async def ctrlrodbg() -> None:
 
 async def ctrlrodcheck(ctrlrodevent) -> None:
     """
-    Check if all control rods are in correct position.
+    Block until all control rods are in correct position.
     """
 
     await ctrlrodevent.wait() # blocks until all control rods are in correct place
@@ -191,7 +191,7 @@ async def ctrlrodcheck(ctrlrodevent) -> None:
         CTRLRODPIN
     ))
 
-async def ctrlrodseq(callback: Callable) -> None:
+async def ctrlrodseq(callback: Callable[..., Any]) -> None:
     """
     Implement a blocking function to wait until all control rods are in correct order.
     """
@@ -215,12 +215,66 @@ async def ctrlrodseq(callback: Callable) -> None:
 
     return callback()
 
+async def disarmcheck(disarmevent) -> None:
+    """
+    Block until disarm switches have been flipped.
+    """
+
+    await disarmevent.wait() # blocks until all control rods are in correct place
+
+    debug("Disarm switch flicked.")
+
+    await loop.run_in_executor(None, partial(
+        del_interrupt_callback,
+        CTRLRODPIN
+    ))
+
+async def disarmbg() -> None:
+    """
+    Background process(s) to run while disarmseq is running.
+    """
+
+    debug("Starting disarm switch background tasks...")
+
+    try:
+        while True:
+            pass # run bg code
+
+    except CancelledError:
+        debug("Stopping disarm switch background tasks...")
+
+    finally:
+        debug("Stopped disarm switch background tasks.")
+
+async def disarmseq(callback: Callable[..., Any]) -> None:
+    """
+    Implement a blocking function to wait until the disarm switches have been flipped.
+    """
+
+    debug("Starting control rod sequence...")
+
+    disarmevent = Event()
+
+    await loop.run_in_executor(None, partial(
+        add_interrupt_callback,
+        DISARMPIN,
+        callback=disarmevent.set,
+        edge="rising",
+        threaded_callback=True
+    ))
+
+    await disarmcheck(disarmevent) # blocks until both disarm switches have been flipped
+
+    debug("Finishing disarm switch sequence...")
+    debug("Calling %s...", callback.__name__)
+
+    return callback()
+
 async def winseq(timeleft: float | int) -> None:
     info("Escaped successfully!!")
 
     if timeleft > 0:
         info("Your time was %ds", round(TIMEOUT - timeleft))
-
 
 async def failseq() -> None:
     info("Attempt failed!!")
@@ -246,14 +300,17 @@ async def main() -> None:
 
                     await moveservo(DOOR0, 90)
 
-                    # next seq
-
                     crbg = create_task(ctrlrodbg())
 
                     await ctrlrodseq(crbg.cancel) # start control rod sequence, blocking until complete
                     await crbg # clean up bg code
 
-                    # successfully escaped!
+                    finbg = create_task(disarmbg())
+
+                    await disarmseq(finbg.cancel) # start final sequence, blocking until complete
+                    await finbg # clean up bg code
+
+                    await moveservo(DOOR1, 90) # successfully escaped!
 
                 await winseq((gameto.when() or 0) - now())
 

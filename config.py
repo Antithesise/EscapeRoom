@@ -14,6 +14,7 @@ from RPIO import BCM, BOARD
 # ---------------------------------------------------------------------------- #
 
 DEBUG = True # True or False
+"Is the application in debugging mode?"
 
 TIMEOUT = 600.0 # 600s = 10min
 "The duration after which the user will automatically fail"
@@ -34,15 +35,19 @@ DOOR0PIN = 23
 DOOR1PIN = 24
 "The control pin of the second door servo"
 
-# --------------------------- Combination settings --------------------------- #
+SERVODELAY = 100
+"The time to wait to ensure a servo has moved in ms"
+
+# ------------------------------ Input settings ------------------------------ #
 
 COMBOPINS = (17, 27, 22, 10)
 "The pins of the buttons (order sensitive)"
 
-COMBOSEQ = [3, 0, 2, 1, 0, 0, 3, 3]
+COMBOSEQ = [3, 0, 2, 1, 0, 0, 3, 3] # Change me!
 "The correct sequence of buttons"
 
-# --------------------------- Control rod settings --------------------------- #
+DISARMPIN = 9
+"The pin of the disarm switch"
 
 CTRLRODPIN = 11
 "The pin of the control rod detector"

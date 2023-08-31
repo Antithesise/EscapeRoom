@@ -64,7 +64,7 @@ async def moveservo(servo: ServoType, deg: int) -> None:
     await degtodutycycle(0, servo) # servo.dc = 0
     servo.ctl.stop_servo(servo.pin)
 
-async def beep(piezo: PWMType, freqhz: int, duration: int):
+async def beep(piezo: PWMType, freqhz: int, duration: int) -> None:
     """
     Generate a frequency on a pwm pin for a length of time in ms.
     """
@@ -177,7 +177,7 @@ async def ctrlrodbg() -> None:
     finally:
         debug("Stopped control rod background tasks.")
 
-async def ctrlrodcheck(ctrlrodevent) -> None:
+async def ctrlrodcheck(ctrlrodevent: Event) -> None:
     """
     Block until all control rods are in correct position.
     """
@@ -215,7 +215,7 @@ async def ctrlrodseq(callback: Callable[..., Any]) -> None:
 
     return callback()
 
-async def disarmcheck(disarmevent) -> None:
+async def disarmcheck(disarmevent: Event) -> None:
     """
     Block until disarm switches have been flipped.
     """

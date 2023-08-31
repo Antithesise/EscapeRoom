@@ -5,7 +5,7 @@ from RPIO._h_stdlib import *
 # from RPIO._h_errno import *
 # from RPIO._h_stdarg import *
 # from RPIO._h_stdint import *
-from RPIO._c_signal import *
+from RPIO._h_signal import *
 # from RPIO._h_time import *
 from RPIO._c_sys_time import *
 # from RPIO._h_sys_types import *

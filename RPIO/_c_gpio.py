@@ -1,6 +1,6 @@
 # from RPIO._c_stdint import *
 from RPIO._h_stdlib import *
-from RPIO._c_fcntl import *
+from RPIO._h_fcntl import *
 from RPIO._c_sys_mman import *
 from RPIO._h_gpio import *
 

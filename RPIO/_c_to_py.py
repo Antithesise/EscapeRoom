@@ -99,6 +99,12 @@ class Ptr(Generic[_T]):
 
         return self.obj
 
+    def __repr__(self) -> str:
+        if hasattr(self, "obj"):
+            return f"{self.__class__.__name__}({self.obj})"
+        else:
+            return super().__repr__()
+
 @final
 class ObjPtr(Generic[_T]):
     def __init__(self, obj: ObjectType[_T]) -> None:
@@ -201,6 +207,12 @@ class ObjPtr(Generic[_T]):
             raise StopIteration
 
         return self.obj
+
+    def __repr__(self) -> str:
+        if hasattr(self, "obj"):
+            return f"{self.__class__.__name__}({self.obj})"
+        else:
+            return super().__repr__()
 
 
 void = Ptr(type)

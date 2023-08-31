@@ -6,7 +6,7 @@ The application's main script.
 © 2023 Antithesise
 """
 
-from asyncio import CancelledError, Task, create_task, gather, get_event_loop, run, sleep, timeout
+from asyncio import CancelledError, Event, Task, create_task, gather, get_event_loop, run, sleep, timeout
 from logging import error, debug, getLogger, info
 from builtins import input as terminput # Grrrr: RPIO overrides `input` namespace
 from functools import partial
@@ -32,7 +32,8 @@ for p in COMBOPINS:
     setup(p, IN)
 
 comboseq = []
-combolck = Lock()
+
+mainlck = Lock()
 
 loop = get_event_loop()
 
@@ -105,7 +106,7 @@ def comlockcbfactory(combo: CombinationType, pin: int) -> Callable[[], None]:
     async def callback(combo: CombinationType=combo, pin: int=pin):
         debug("Button press detected on pin %d.", pin)
 
-        with combolck:
+        with mainlck:
             comboseq.append(combo.pinindex(pin)) # add pin to inputs
 
     return partial(loop.run_until_complete, callback(combo, pin))
@@ -118,7 +119,7 @@ async def comlockcheck(combo: CombinationType) -> None:
     while True:
         await loop.run_in_executor(None, wait_for_interrupts) # wait_for_interrupts blocks synchronously,
                                                               # so we run in it executor and await output
-        with combolck: # access combo_seq so its threadsafe
+        with mainlck: # access combo_seq so its threadsafe
             if comboseq == combo.seq:
                 await gather( # remove callbacks
                     loop.run_in_executor(None, del_interrupt_callback, p) for p in combo.pins
@@ -154,6 +155,62 @@ async def comlockseq(combo: CombinationType, callback: Callable) -> None:
 
     await comlockcheck(combo) # blocks until correct code is inputted
 
+    debug("Finishing combination lock sequence...")
+    debug("Calling %s...", callback.__name__)
+
+    return callback()
+
+async def ctrlrodbg() -> None:
+    """
+    Background process(s) to run while ctrlrodseq is running.
+    """
+
+    debug("Starting control rod background tasks...")
+
+    try:
+        while True:
+            pass # run bg code
+
+    except CancelledError:
+        debug("Stopping control rod background tasks...")
+
+    finally:
+        debug("Stopped control rod background tasks.")
+
+async def ctrlrodcheck(ctrlrodevent) -> None:
+    """
+    Check if all control rods are in correct position.
+    """
+
+    await ctrlrodevent.wait() # blocks until all control rods are in correct place
+
+    debug("All control rods detected.")
+
+    await loop.run_in_executor(None, partial(
+        del_interrupt_callback,
+        CTRLRODPIN
+    ))
+
+async def ctrlrodseq(callback: Callable) -> None:
+    """
+    Implement a blocking function to wait until all control rods are in correct order.
+    """
+
+    debug("Starting control rod sequence...")
+
+    ctrlrodevent = Event()
+
+    await loop.run_in_executor(None, partial(
+        add_interrupt_callback,
+        CTRLRODPIN,
+        callback=ctrlrodevent.set,
+        edge="rising",
+        threaded_callback=True
+    ))
+
+    await ctrlrodcheck(ctrlrodevent) # blocks until all control rods are in correct place
+
+    debug("Finishing control rod sequence...")
     debug("Calling %s...", callback.__name__)
 
     return callback()
@@ -184,12 +241,19 @@ async def main() -> None:
                 async with timeout(TIMEOUT) as gameto:
                     clbg = create_task(comlockbg())
 
-                    await comlockseq(COMBO, clbg.cancel) # start combo lock sequence, bloxking until complete
+                    await comlockseq(COMBO, clbg.cancel) # start combo lock sequence, blocking until complete
                     await clbg # clean up bg code
 
                     await moveservo(DOOR0, 90)
 
                     # next seq
+
+                    crbg = create_task(ctrlrodbg())
+
+                    await ctrlrodseq(crbg.cancel) # start control rod sequence, blocking until complete
+                    await crbg # clean up bg code
+
+                    # successfully escaped!
 
                 await winseq((gameto.when() or 0) - now())
 

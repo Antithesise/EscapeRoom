@@ -42,6 +42,10 @@ COMBOPINS = (17, 27, 22, 10)
 COMBOSEQ = [3, 0, 2, 1, 0, 0, 3, 3]
 "The correct sequence of buttons"
 
+# --------------------------- Control rod settings --------------------------- #
+
+CTRLRODPIN = 11
+"The pin of the control rod detector"
 
 # ---------------------------------------------------------------------------- #
 #                                Advanced config                               #

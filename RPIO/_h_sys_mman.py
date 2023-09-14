@@ -43,18 +43,18 @@ class Memory(UserList[int]):
 
     def __getitem__(self, i: slice | SupportsInt):
         if isinstance(i, slice):
-            j = slice(i.start - self.addr, i.stop - self.addr, i.step)
+            j = slice(i.start, i.stop, i.step)
 
             i = i.start
         else:
-            j = int(i) - self.addr
+            j = int(i)
 
         debug(f"Getting memory at {i:x}...")
 
         return self.data[j]
 
     def __setitem__(self, i: SupportsInt, item: int):
-        j = int(i) - self.addr
+        j = int(i)
 
         debug(f"Setting memory ar {i:x}...")
 

@@ -7,11 +7,13 @@ Press `Ctrl+D` to reset, and `Ctrl+C` to exit.
 ## Parts List
 - 1 x [Raspberry Pi 4B](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/)
 - 1 x 1x4 keypad, such as the [Adafruit 1332](https://www.adafruit.com/product/1332)
+- 3 x Reed Switch OR Touch Sensor
 - 2 x 5v micro servo
 - 2 x Passive buzzer (piezo)
 - 1 x NPN Transistor
-- 2 x Button
+- 2 x Switch
 - 5 x LED (20mA)
+- 1 x Diode
 - Resistors to make up the following resistances:
   - 6kΩ
   - 1kΩ
@@ -19,6 +21,8 @@ Press `Ctrl+D` to reset, and `Ctrl+C` to exit.
 
 ## Circuit Diagram
 ![Circuit Diagram](circuit.png)
+If reed switches are unavailable, a touch sensor could alternatively be used in conjunction with a small piece of conductive material:
+![Touch Sensor Circuit Diagram](touch-circuit.png)
 Note: Diagram may not fully reflect layout of final design. All pin numbers can be changed in `config.py` (see below).
 
 ## Pin Configuration
@@ -51,7 +55,7 @@ Configurable in `config.py`, here are the default values:
 
 ## Credits
 - [metachris](https://github.com/metachris), author of the [RPIO](https://github.com/metachris/RPIO) library
-- [Circuit Diagram](https://www.circuit-diargam.org), for generation of circuit diagrams
+- [Circuit Diagram](https://www.circuit-diagram.org), for generation of circuit diagrams
 - [StackOverflow](https://stackoverflow.com/) Users et al
 
 ---

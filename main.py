@@ -6,7 +6,7 @@ The application's main script.
 © 2023 Antithesise
 """
 
-from asyncio import CancelledError, Event, Task, create_task, gather, get_event_loop, run, sleep, timeout
+from asyncio import CancelledError, Event, Task, create_task, gather, get_event_loop_policy, run, sleep, timeout
 from logging import error, debug, getLogger, info
 from builtins import input as terminput # Grrrr: RPIO overrides `input` namespace
 from functools import partial
@@ -35,7 +35,7 @@ comboseq = []
 
 mainlck = Lock()
 
-loop = get_event_loop()
+loop = get_event_loop_policy().get_event_loop()
 
 
 async def reset() -> Task | None:
@@ -47,7 +47,7 @@ async def reset() -> Task | None:
             moveservo(DOOR1, 0)
         )
 
-    return await loop.create_task(resetbg())
+    return loop.create_task(resetbg())
 
 async def moveservo(servo: ServoType, deg: int) -> None:
     """
